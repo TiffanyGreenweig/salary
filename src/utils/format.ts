@@ -13,7 +13,22 @@ export function formatCurrency(amount: string): string {
 }
 
 export function formatRecordTime(value: string): string {
-  return dayjs(value).format('MM-DD HH:mm');
+  const target = dayjs(value);
+  const now = dayjs();
+
+  if (target.isSame(now, 'day')) {
+    return target.format('HH:mm');
+  }
+
+  if (target.isSame(now.subtract(1, 'day'), 'day')) {
+    return '昨天';
+  }
+
+  if (target.isSame(now.subtract(2, 'day'), 'day')) {
+    return '前天';
+  }
+
+  return target.format('MM-DD');
 }
 
 export function formatDateTime(value: string): string {

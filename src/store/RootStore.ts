@@ -2,6 +2,7 @@ import { makeAutoObservable, runInAction } from 'mobx';
 
 import { apiClient, getErrorMessage, type ApiClient } from '../api/client';
 import type { Category, ExpenseFormMode, ExpensePayload, ExpenseRecord, RecordRange } from '../types';
+import { matchesRecordFilter, sortRecords } from '../utils/recordFilters';
 
 export class RootStore {
   readonly api: ApiClient;
@@ -184,15 +185,39 @@ export class RecordStore {
     this.remarkRecord = null;
   }
 
+  private syncVisibleRecord(record: ExpenseRecord): void {
+    const filter = {
+      range: this.root.filters.range,
+      categoryId: this.root.filters.categoryId,
+    };
+
+    if (!matchesRecordFilter(record, filter)) {
+      this.records = this.records.filter((item) => item.id !== record.id);
+      return;
+    }
+
+    const nextRecords = this.records.filter((item) => item.id !== record.id);
+    nextRecords.unshift(record);
+    this.records = sortRecords(nextRecords);
+  }
+
   async submitRecord(payload: ExpensePayload): Promise<void> {
     this.submitting = true;
     this.error = '';
 
     try {
+      let savedRecord: ExpenseRecord | null = null;
+
       if (this.sheetMode === 'create') {
-        await this.root.api.createRecord(payload);
+        savedRecord = await this.root.api.createRecord(payload);
       } else if (this.editingRecord) {
-        await this.root.api.updateRecord(this.editingRecord.id, payload);
+        savedRecord = await this.root.api.updateRecord(this.editingRecord.id, payload);
+      }
+
+      if (savedRecord) {
+        runInAction(() => {
+          this.syncVisibleRecord(savedRecord);
+        });
       }
 
       runInAction(() => {

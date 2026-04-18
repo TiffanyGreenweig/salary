@@ -1,6 +1,8 @@
 import { Button, Dialog, SwipeAction } from 'antd-mobile';
+import { DeleteOutline, EditSOutline, ExclamationCircleOutline } from 'antd-mobile-icons';
 
 import type { Category, ExpenseRecord } from '../types';
+import { getCategoryVisual } from '../utils/categoryVisuals';
 import { formatCurrency, formatRecordTime } from '../utils/format';
 
 interface ExpenseListProps {
@@ -58,21 +60,32 @@ export function ExpenseList({
       {records.map((record) => {
         const category = categories.find((item) => item.id === record.categoryId);
         const categoryName = category?.name ?? '未分类';
-        const categoryColor = category?.color ?? '#5b6474';
+        const { Icon, tone } = getCategoryVisual(record.categoryId);
 
         return (
           <SwipeAction
+            className="expense-swipe-action"
             key={record.id}
             rightActions={[
               {
                 key: 'edit',
-                text: '编辑',
+                text: (
+                  <span className="record-action__content">
+                    <EditSOutline />
+                    <span>编辑</span>
+                  </span>
+                ),
                 color: 'primary',
                 onClick: () => onEdit(record),
               },
               {
                 key: 'delete',
-                text: '删除',
+                text: (
+                  <span className="record-action__content">
+                    <DeleteOutline />
+                    <span>删除</span>
+                  </span>
+                ),
                 color: 'danger',
                 onClick: async () => {
                   const confirmed = await Dialog.confirm({
@@ -88,22 +101,35 @@ export function ExpenseList({
               },
             ]}
           >
-            <button className="expense-card" type="button" onClick={() => onRemark(record)}>
-              <div className="expense-card__top">
-                <span className="expense-card__category" style={{ backgroundColor: categoryColor }}>
-                  {categoryName}
-                </span>
-                <span className="expense-card__amount">{formatCurrency(record.amount)}</span>
+            <div className="expense-card">
+              <div className={`expense-card__icon-box expense-card__icon-box--${tone}`} aria-hidden="true">
+                <Icon className="expense-card__icon" />
               </div>
 
-              <div className="expense-card__bottom">
-                <div>
-                  <h3 className="expense-card__title">{record.title}</h3>
-                  <p className="expense-card__time">{formatRecordTime(record.spentAt)}</p>
+              <div className="expense-card__content">
+                <div className="expense-card__top">
+                  <div className="expense-card__heading">
+                    <h3 className="expense-card__title">{record.title}</h3>
+                    {record.remark ? (
+                      <button
+                        aria-label={`查看${record.title}备注`}
+                        className="expense-card__remark-trigger"
+                        type="button"
+                        onClick={() => onRemark(record)}
+                      >
+                        <ExclamationCircleOutline className="expense-card__info" />
+                      </button>
+                    ) : null}
+                  </div>
+                  <span className="expense-card__amount">{formatCurrency(record.amount)}</span>
                 </div>
-                <span className="expense-card__hint">点击查看备注</span>
+
+                <div className="expense-card__bottom">
+                  <span className="expense-card__time">{formatRecordTime(record.spentAt)}</span>
+                  <span className="expense-card__category-name">{categoryName}</span>
+                </div>
               </div>
-            </button>
+            </div>
           </SwipeAction>
         );
       })}

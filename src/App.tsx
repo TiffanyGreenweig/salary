@@ -1,4 +1,5 @@
 import { Button } from 'antd-mobile';
+import { AddOutline } from 'antd-mobile-icons';
 import { observer } from 'mobx-react-lite';
 import { useEffect } from 'react';
 
@@ -20,10 +21,9 @@ const App = observer(function App() {
       <div className="app-shell__gradient" />
 
       <main className="app-shell__content">
-        <header className="hero-card">
-          <p className="hero-card__eyebrow">Salary Ledger</p>
+        <header className="page-header">
           <h1>消费记账</h1>
-          <p>按周、月、年快速回看你的日常支出，也能按分类联合筛选。</p>
+          <p>按周、月、年快速回看你的日常支出</p>
         </header>
 
         <StickyFilters
@@ -47,8 +47,13 @@ const App = observer(function App() {
         />
       </main>
 
-      <Button className="fab-button" color="primary" size="large" onClick={() => store.records.openCreateSheet()}>
-        + 添加消费
+      <Button
+        aria-label="添加消费"
+        className="fab-button"
+        color="primary"
+        onClick={() => store.records.openCreateSheet()}
+      >
+        <AddOutline />
       </Button>
 
       <ExpenseFormSheet

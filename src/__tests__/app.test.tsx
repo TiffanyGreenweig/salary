@@ -77,7 +77,7 @@ function renderApp(api: ApiClient) {
 }
 
 describe('expense app', () => {
-  it('switches ranges, opens remark dialog, and validates the create sheet', async () => {
+  it('switches ranges, opens remark only from the title icon, and validates the create sheet', async () => {
     const api = createMemoryApi([
       {
         id: 'week-record',
@@ -120,7 +120,7 @@ describe('expense app', () => {
       expect(screen.queryByText('打车')).not.toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByRole('button', { name: '+ 添加消费' }));
+    fireEvent.click(screen.getByRole('button', { name: '添加消费' }));
     expect(await screen.findByText('添加消费')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: '保存消费' }));
@@ -129,7 +129,10 @@ describe('expense app', () => {
     expect(screen.getByText('请输入消费标题')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: '关闭' }));
-    fireEvent.click(screen.getByRole('button', { name: /午餐/ }));
+    fireEvent.click(screen.getByText('午餐'));
+    expect(screen.queryByText('公司附近的面馆')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '查看午餐备注' }));
     expect(await screen.findByText('公司附近的面馆')).toBeInTheDocument();
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: '知道了' }));
@@ -140,13 +143,12 @@ describe('expense app', () => {
     const api = createMemoryApi([]);
     renderApp(api);
 
-    fireEvent.click(await screen.findByRole('button', { name: '+ 添加消费' }));
+    fireEvent.click(await screen.findByRole('button', { name: '添加消费' }));
 
-    const foodSelector = screen.getByText('餐饮').closest('.adm-selector-item') as HTMLElement;
-    fireEvent.click(foodSelector);
-    fireEvent.change(screen.getByPlaceholderText('请输入金额'), { target: { value: '48' } });
-    fireEvent.change(screen.getByPlaceholderText('例如：午餐、打车、房租'), { target: { value: '晚餐' } });
-    fireEvent.change(screen.getByPlaceholderText('补充这笔消费的细节'), {
+    fireEvent.click(screen.getByRole('button', { name: /餐饮/ }));
+    fireEvent.change(screen.getByPlaceholderText('0.00'), { target: { value: '48' } });
+    fireEvent.change(screen.getByPlaceholderText('例如: 午餐'), { target: { value: '晚餐' } });
+    fireEvent.change(screen.getByPlaceholderText('记录更多信息（可选）'), {
       target: { value: '和朋友一起吃饭' },
     });
     fireEvent.click(screen.getByRole('button', { name: '保存消费' }));

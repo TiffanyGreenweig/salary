@@ -18,6 +18,12 @@ class HttpError extends Error {
   }
 }
 
+const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/$/, '');
+
+function createApiUrl(path: string): string {
+  return apiBaseUrl ? `${apiBaseUrl}${path}` : path;
+}
+
 async function readJson<T>(response: Response): Promise<T> {
   if (response.status === 204) {
     return undefined as T;
@@ -55,7 +61,7 @@ export function getErrorMessage(error: unknown): string {
 
 export const apiClient: ApiClient = {
   getCategories() {
-    return fetchJson<Category[]>('/api/categories');
+    return fetchJson<Category[]>(createApiUrl('/api/categories'));
   },
   getRecords(filter) {
     const search = new URLSearchParams();
@@ -65,22 +71,22 @@ export const apiClient: ApiClient = {
       search.set('categoryId', filter.categoryId);
     }
 
-    return fetchJson<ExpenseRecord[]>(`/api/records?${search.toString()}`);
+    return fetchJson<ExpenseRecord[]>(createApiUrl(`/api/records?${search.toString()}`));
   },
   createRecord(payload) {
-    return fetchJson<ExpenseRecord>('/api/records', {
+    return fetchJson<ExpenseRecord>(createApiUrl('/api/records'), {
       method: 'POST',
       body: JSON.stringify(payload),
     });
   },
   updateRecord(recordId, payload) {
-    return fetchJson<ExpenseRecord>(`/api/records/${recordId}`, {
+    return fetchJson<ExpenseRecord>(createApiUrl(`/api/records/${recordId}`), {
       method: 'PATCH',
       body: JSON.stringify(payload),
     });
   },
   deleteRecord(recordId) {
-    return fetchJson<void>(`/api/records/${recordId}`, {
+    return fetchJson<void>(createApiUrl(`/api/records/${recordId}`), {
       method: 'DELETE',
     });
   },
