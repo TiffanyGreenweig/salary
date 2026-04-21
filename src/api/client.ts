@@ -1,4 +1,5 @@
 import type { Category, ExpensePayload, ExpenseRecord, RecordFilter } from '../types';
+import { resolveCategories } from '../utils/categories';
 
 export interface ApiClient {
   getCategories: () => Promise<Category[]>;
@@ -40,12 +41,15 @@ async function readJson<T>(response: Response): Promise<T> {
 }
 
 async function fetchJson<T>(input: string, init?: RequestInit): Promise<T> {
+  const headers = new Headers(init?.headers);
+
+  if (init?.body != null && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
+
   const response = await fetch(input, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...(init?.headers ?? {}),
-    },
     ...init,
+    headers,
   });
 
   return readJson<T>(response);
@@ -60,18 +64,23 @@ export function getErrorMessage(error: unknown): string {
 }
 
 export const apiClient: ApiClient = {
-  getCategories() {
-    return fetchJson<Category[]>(createApiUrl('/api/categories'));
+  async getCategories() {
+    const data = await fetchJson<unknown>(createApiUrl('/api/categories'));
+    return resolveCategories(data);
   },
   getRecords(filter) {
-    const search = new URLSearchParams();
-    search.set('range', filter.range);
+    const body: RecordFilter = {
+      range: filter.range,
+    };
 
-    if (filter.categoryId) {
-      search.set('categoryId', filter.categoryId);
+    if (filter.categoryIds?.length) {
+      body.categoryIds = filter.categoryIds;
     }
 
-    return fetchJson<ExpenseRecord[]>(createApiUrl(`/api/records?${search.toString()}`));
+    return fetchJson<ExpenseRecord[]>(createApiUrl('/api/records/search'), {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
   },
   createRecord(payload) {
     return fetchJson<ExpenseRecord>(createApiUrl('/api/records'), {

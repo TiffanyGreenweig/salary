@@ -11,6 +11,7 @@ import { useRootStore } from './store/rootStoreContext';
 
 const App = observer(function App() {
   const store = useRootStore();
+  const categories = store.records.availableCategories;
 
   useEffect(() => {
     void store.initialize();
@@ -27,16 +28,16 @@ const App = observer(function App() {
         </header>
 
         <StickyFilters
-          categories={store.records.categories}
+          categories={categories}
           range={store.filters.range}
-          selectedCategoryId={store.filters.categoryId}
-          selectedCategoryLabel={store.records.selectedCategoryName}
+          selectedCategoryIds={store.filters.categoryIds}
+          selectedCategoryLabel={store.records.selectedCategoryLabel}
           onRangeChange={(range) => store.filters.setRange(range)}
-          onCategoryChange={(categoryId) => store.filters.setCategory(categoryId)}
+          onCategoryChange={(categoryIds) => store.filters.setCategoryIds(categoryIds)}
         />
 
         <ExpenseList
-          categories={store.records.categories}
+          categories={categories}
           records={store.records.records}
           loading={store.records.loadingInitial || store.records.loading}
           error={store.records.error}
@@ -59,7 +60,7 @@ const App = observer(function App() {
       <ExpenseFormSheet
         visible={store.records.sheetVisible}
         mode={store.records.sheetMode}
-        categories={store.records.categories}
+        categories={categories}
         initialRecord={store.records.editingRecord}
         submitting={store.records.submitting}
         onClose={() => store.records.closeSheet()}

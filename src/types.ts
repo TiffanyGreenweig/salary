@@ -20,7 +20,7 @@ export interface ExpenseRecord {
 
 export interface RecordFilter {
   range: RecordRange;
-  categoryId?: string;
+  categoryIds?: string[];
 }
 
 export type ExpenseFormMode = 'create' | 'edit';

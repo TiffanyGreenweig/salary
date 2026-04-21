@@ -2,6 +2,7 @@ import { makeAutoObservable, runInAction } from 'mobx';
 
 import { apiClient, getErrorMessage, type ApiClient } from '../api/client';
 import type { Category, ExpenseFormMode, ExpensePayload, ExpenseRecord, RecordRange } from '../types';
+import { resolveCategories } from '../utils/categories';
 import { matchesRecordFilter, sortRecords } from '../utils/recordFilters';
 
 export class RootStore {
@@ -34,7 +35,7 @@ export class RootStore {
 export class FilterStore {
   readonly root: RootStore;
   range: RecordRange = 'month';
-  categoryId?: string = undefined;
+  categoryIds: string[] = [];
 
   constructor(root: RootStore) {
     this.root = root;
@@ -52,12 +53,12 @@ export class FilterStore {
     void this.root.records.loadRecords();
   }
 
-  setCategory(categoryId?: string): void {
-    if (this.categoryId === categoryId) {
+  setCategoryIds(categoryIds: string[]): void {
+    if (this.categoryIds.length === categoryIds.length && this.categoryIds.every((categoryId, index) => categoryId === categoryIds[index])) {
       return;
     }
 
-    this.categoryId = categoryId;
+    this.categoryIds = categoryIds;
     void this.root.records.loadRecords();
   }
 }
@@ -90,16 +91,24 @@ export class RecordStore {
     return this.records.find((record) => record.id === this.editingRecordId) ?? null;
   }
 
-  get selectedCategoryName(): string {
-    if (!this.root.filters.categoryId) {
+  get selectedCategoryLabel(): string {
+    if (this.root.filters.categoryIds.length === 0) {
       return '全部分类';
     }
 
-    return this.categories.find((category) => category.id === this.root.filters.categoryId)?.name ?? '全部分类';
+    if (this.root.filters.categoryIds.length === 1) {
+      return this.availableCategories.find((category) => category.id === this.root.filters.categoryIds[0])?.name ?? '全部分类';
+    }
+
+    return `已选 ${this.root.filters.categoryIds.length} 类`;
   }
 
   getCategoryById(categoryId: string): Category | undefined {
-    return this.categories.find((category) => category.id === categoryId);
+    return this.availableCategories.find((category) => category.id === categoryId);
+  }
+
+  get availableCategories(): Category[] {
+    return resolveCategories(this.categories);
   }
 
   async bootstrap(): Promise<void> {
@@ -111,12 +120,12 @@ export class RecordStore {
         this.root.api.getCategories(),
         this.root.api.getRecords({
           range: this.root.filters.range,
-          categoryId: this.root.filters.categoryId,
+          categoryIds: this.root.filters.categoryIds,
         }),
       ]);
 
       runInAction(() => {
-        this.categories = categories;
+        this.categories = resolveCategories(categories);
         this.records = records;
       });
     } catch (error) {
@@ -138,7 +147,7 @@ export class RecordStore {
     try {
       const records = await this.root.api.getRecords({
         range: this.root.filters.range,
-        categoryId: this.root.filters.categoryId,
+        categoryIds: this.root.filters.categoryIds,
       });
 
       runInAction(() => {
@@ -188,7 +197,7 @@ export class RecordStore {
   private syncVisibleRecord(record: ExpenseRecord): void {
     const filter = {
       range: this.root.filters.range,
-      categoryId: this.root.filters.categoryId,
+      categoryIds: this.root.filters.categoryIds,
     };
 
     if (!matchesRecordFilter(record, filter)) {

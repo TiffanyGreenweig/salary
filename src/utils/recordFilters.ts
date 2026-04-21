@@ -16,7 +16,7 @@ export function matchesRecordFilter(
   filter: RecordFilter,
   now: Date = new Date(),
 ): boolean {
-  if (filter.categoryId && record.categoryId !== filter.categoryId) {
+  if (filter.categoryIds?.length && !filter.categoryIds.includes(record.categoryId)) {
     return false;
   }
 

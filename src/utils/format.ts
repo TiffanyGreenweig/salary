@@ -1,7 +1,14 @@
 import dayjs from 'dayjs';
 import 'dayjs/locale/zh-cn';
+import timezone from 'dayjs/plugin/timezone';
+import utc from 'dayjs/plugin/utc';
 
+dayjs.extend(utc);
+dayjs.extend(timezone);
 dayjs.locale('zh-cn');
+
+const APP_TIMEZONE = 'Asia/Shanghai';
+const RECORD_TIME_FORMAT = 'YYYY.MM.DD HH:mm';
 
 export function formatCurrency(amount: string): string {
   return new Intl.NumberFormat('zh-CN', {
@@ -13,24 +20,9 @@ export function formatCurrency(amount: string): string {
 }
 
 export function formatRecordTime(value: string): string {
-  const target = dayjs(value);
-  const now = dayjs();
-
-  if (target.isSame(now, 'day')) {
-    return target.format('HH:mm');
-  }
-
-  if (target.isSame(now.subtract(1, 'day'), 'day')) {
-    return '昨天';
-  }
-
-  if (target.isSame(now.subtract(2, 'day'), 'day')) {
-    return '前天';
-  }
-
-  return target.format('MM-DD');
+  return dayjs(value).tz(APP_TIMEZONE).format(RECORD_TIME_FORMAT);
 }
 
 export function formatDateTime(value: string): string {
-  return dayjs(value).format('YYYY-MM-DD HH:mm');
+  return dayjs(value).tz(APP_TIMEZONE).format(RECORD_TIME_FORMAT);
 }

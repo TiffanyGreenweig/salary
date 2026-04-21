@@ -6,7 +6,7 @@ import App from '../App';
 import type { ApiClient } from '../api/client';
 import { RootStore } from '../store/RootStore';
 import { RootStoreProvider } from '../store/rootStoreContext';
-import type { Category, ExpensePayload, ExpenseRecord, RecordFilter } from '../types';
+import type { Category, ExpensePayload, ExpenseRecord } from '../types';
 
 const categories: Category[] = [
   { id: 'food', name: '餐饮', color: '#ff7a59', sortOrder: 1 },
@@ -16,9 +16,9 @@ const categories: Category[] = [
 function createMemoryApi(seedRecords: ExpenseRecord[]): ApiClient {
   let records = [...seedRecords];
 
-  function filterRecords(filter: RecordFilter): ExpenseRecord[] {
-    const categoryId = filter.categoryId;
-    const filtered = categoryId ? records.filter((item) => item.categoryId === categoryId) : records;
+  function filterRecords(filter: any): ExpenseRecord[] {
+    const categoryIds: string[] = filter.categoryIds ?? [];
+    const filtered = categoryIds.length > 0 ? records.filter((item) => categoryIds.includes(item.categoryId)) : records;
 
     if (filter.range === 'week') {
       return filtered.filter((item) => item.id !== 'month-only');
@@ -139,6 +139,67 @@ describe('expense app', () => {
     });
   });
 
+  it('applies multi-select category filters with confirm and clear actions', async () => {
+    const api = createMemoryApi([
+      {
+        id: 'food-record',
+        categoryId: 'food',
+        amount: '26.50',
+        title: '午餐',
+        remark: '',
+        spentAt: '2026-04-15T04:00:00.000Z',
+        createdAt: '2026-04-15T04:00:00.000Z',
+        updatedAt: '2026-04-15T04:00:00.000Z',
+      },
+      {
+        id: 'transport-record',
+        categoryId: 'transport',
+        amount: '30.00',
+        title: '打车',
+        remark: '',
+        spentAt: '2026-04-15T05:00:00.000Z',
+        createdAt: '2026-04-15T05:00:00.000Z',
+        updatedAt: '2026-04-15T05:00:00.000Z',
+      },
+      {
+        id: 'clothes-record',
+        categoryId: 'clothes',
+        amount: '120.00',
+        title: '买衣服',
+        remark: '',
+        spentAt: '2026-04-15T06:00:00.000Z',
+        createdAt: '2026-04-15T06:00:00.000Z',
+        updatedAt: '2026-04-15T06:00:00.000Z',
+      },
+    ]);
+
+    renderApp(api);
+
+    expect(await screen.findByText('买衣服')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '分类筛选：全部分类' }));
+    expect(await screen.findByText('筛选记录')).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole('button', { name: '餐饮' }));
+    fireEvent.click(screen.getByRole('button', { name: '交通' }));
+    fireEvent.click(screen.getByRole('button', { name: '确定' }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: '分类筛选：已选 2 类' })).toBeInTheDocument();
+    });
+    expect(screen.getByText('午餐')).toBeInTheDocument();
+    expect(screen.getByText('打车')).toBeInTheDocument();
+    expect(screen.queryByText('买衣服')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '分类筛选：已选 2 类' }));
+    fireEvent.click(await screen.findByRole('button', { name: '清空' }));
+    fireEvent.click(screen.getByRole('button', { name: '确定' }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: '分类筛选：全部分类' })).toBeInTheDocument();
+    });
+    expect(screen.getByText('买衣服')).toBeInTheDocument();
+  });
+
   it('creates a new record and refreshes the list', async () => {
     const api = createMemoryApi([]);
     renderApp(api);
@@ -155,5 +216,17 @@ describe('expense app', () => {
 
     expect(await screen.findByText('晚餐')).toBeInTheDocument();
     expect(screen.getByText('¥48.00')).toBeInTheDocument();
+  });
+
+  it('falls back to built-in categories when the API returns none', async () => {
+    const api = createMemoryApi([]);
+    api.getCategories = async () => [];
+
+    renderApp(api);
+
+    fireEvent.click(await screen.findByRole('button', { name: '添加消费' }));
+
+    expect(await screen.findByRole('button', { name: /餐饮/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /交通/ })).toBeInTheDocument();
   });
 });
